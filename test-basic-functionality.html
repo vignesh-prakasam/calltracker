@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Call Tracker - Basic Functionality Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Call Tracker Pro - Basic Functionality Test</h1>
+        
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Checklist</h2>
+            <div class="space-y-2">
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test1">
+                    <span>1. Application loads without errors</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test2">
+                    <span>2. Statistics cards display (Total, Incoming, Outgoing, Missed)</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test3">
+                    <span>3. Dialer interface is visible and functional</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test4">
+                    <span>4. "Add New Call" button opens modal</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test5">
+                    <span>5. Can add a new call manually</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test6">
+                    <span>6. Search functionality works</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test7">
+                    <span>7. Filter by call type works</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test8">
+                    <span>8. Can edit existing call</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test9">
+                    <span>9. Can delete call</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test10">
+                    <span>10. Export to CSV works</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test11">
+                    <span>11. Settings modal opens and saves</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test12">
+                    <span>12. Local storage persists data</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test13">
+                    <span>13. Responsive design works on mobile</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" class="mr-2" id="test14">
+                    <span>14. Buy Me a Coffee button links correctly</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow mb-6">
+            <h2 class="text-xl font-semibold mb-4">Sample Test Data</h2>
+            <p class="text-gray-600 mb-4">Use this data to test the application:</p>
+            <div class="bg-gray-50 p-4 rounded">
+                <pre class="text-sm">
+Contact: John Doe
+Phone: +1234567890
+Type: Incoming
+Duration: 5
+Notes: Test call from sample data
+
+Contact: Jane Smith  
+Phone: +1987654321
+Type: Outgoing
+Duration: 3
+Notes: Follow-up call
+
+Contact: Bob Johnson
+Phone: +1555123456
+Type: Missed
+Duration: 0
+Notes: Missed during meeting
+                </pre>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Instructions</h2>
+            <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                <li>Open the main application at <a href="/" class="text-blue-600 underline">http://localhost:3000</a></li>
+                <li>Work through each test case in the checklist above</li>
+                <li>For Twilio Voice testing, you'll need valid credentials in your .env file</li>
+                <li>Check browser console for any JavaScript errors</li>
+                <li>Test responsiveness by resizing the browser window</li>
+                <li>Verify data persistence by refreshing the page</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Auto-check test 1 since the page loaded
+        document.getElementById('test1').checked = true;
+        
+        // Add click handlers to save test progress
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                localStorage.setItem('test-progress', 
+                    JSON.stringify(Array.from(document.querySelectorAll('input[type="checkbox"]')).map(cb => cb.checked))
+                );
+            });
+        });
+        
+        // Restore test progress
+        const savedProgress = localStorage.getItem('test-progress');
+        if (savedProgress) {
+            const progress = JSON.parse(savedProgress);
+            document.querySelectorAll('input[type="checkbox"]').forEach((checkbox, index) => {
+                checkbox.checked = progress[index] || false;
+            });
+        }
+    </script>
+</body>
+</html>
