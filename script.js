@@ -875,10 +875,49 @@ class CallTracker {
         }
 
         try {
-            // This would typically make a request to your backend to fetch calls from Twilio
-            alert('Import from Twilio functionality requires backend implementation. This would fetch your recent calls from Twilio and add them to the tracker.');
+            // Show loading state
+            const importBtn = document.getElementById('importFromTwilio');
+            const originalText = importBtn.innerHTML;
+            importBtn.innerHTML = '<svg class="w-4 h-4 mr-2 animate-spin" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>Importing...';
+            importBtn.disabled = true;
+
+            const response = await fetch('/api/import-calls');
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                if (data.calls && data.calls.length > 0) {
+                    // Merge imported calls with existing calls, avoiding duplicates
+                    const existingCallIds = new Set(this.calls.map(call => call.id));
+                    const newCalls = data.calls.filter(call => !existingCallIds.has(call.id));
+                    
+                    // Add new calls to the tracker
+                    this.calls = [...this.calls, ...newCalls];
+                    this.saveCallsToStorage();
+                    this.renderCallsTable();
+                    this.updateStatistics();
+                    
+                    alert(`Successfully imported ${newCalls.length} calls from Twilio. (${data.calls.length - newCalls.length} duplicates were skipped)`);
+                } else {
+                    alert('No calls found to import from your Twilio account.');
+                }
+            } else {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to import calls from Twilio');
+            }
+            
+            // Restore button state
+            importBtn.innerHTML = originalText;
+            importBtn.disabled = false;
+            
         } catch (error) {
+            console.error('Import failed:', error);
             alert('Import failed: ' + error.message);
+            
+            // Restore button state
+            const importBtn = document.getElementById('importFromTwilio');
+            importBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/>Import from Twilio';
+            importBtn.disabled = false;
         }
     }
 }
