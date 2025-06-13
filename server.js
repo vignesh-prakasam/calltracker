@@ -17,33 +17,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies (Twilio webhooks)
 app.use(express.static(path.join(__dirname)));
 
-// Twilio configuration
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const apiKeySid = process.env.TWILIO_API_KEY;
-const apiKeySecret = process.env.TWILIO_API_SECRET;
-const twimlAppSid = process.env.TWILIO_TWIML_APP_SID;
-const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
+// Twilio configuration - can be from env vars or dynamic
+let twilioConfig = {
+    accountSid: process.env.TWILIO_ACCOUNT_SID || null,
+    authToken: process.env.TWILIO_AUTH_TOKEN || null,
+    apiKeySid: process.env.TWILIO_API_KEY || null,
+    apiKeySecret: process.env.TWILIO_API_SECRET || null,
+    twimlAppSid: process.env.TWILIO_TWIML_APP_SID || null,
+    phoneNumber: process.env.TWILIO_PHONE_NUMBER || null
+};
 
-// Validate required environment variables
-const requiredEnvVars = [
-    'TWILIO_ACCOUNT_SID',
-    'TWILIO_AUTH_TOKEN',
-    'TWILIO_API_KEY',
-    'TWILIO_API_SECRET'
-];
-
-const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-if (missingVars.length > 0) {
-    console.error('Missing required environment variables:', missingVars.join(', '));
-    console.error('Please check your .env file');
-}
-
-// Initialize Twilio client (only if credentials are available)
+// Initialize Twilio client (will be set dynamically if needed)
 let client = null;
-if (accountSid && authToken) {
-    client = twilio(accountSid, authToken);
+if (twilioConfig.accountSid && twilioConfig.authToken) {
+    client = twilio(twilioConfig.accountSid, twilioConfig.authToken);
 }
+
+// Store for dynamically created/found TwiML apps
+const twimlApps = new Map();
 
 // Rate limiting for token endpoint
 const tokenRequestCounts = new Map();
@@ -84,7 +75,7 @@ app.post('/api/token', (req, res) => {
         }
         
         // Check if required Twilio credentials are available
-        if (!accountSid || !apiKeySid || !apiKeySecret) {
+        if (!twilioConfig.accountSid || !twilioConfig.apiKeySid || !twilioConfig.apiKeySecret) {
             return res.status(500).json({
                 error: 'Twilio credentials not configured on server'
             });
@@ -95,9 +86,9 @@ app.post('/api/token', (req, res) => {
         
         // Create an access token which we will sign and return to the client
         const token = new AccessToken(
-            accountSid,
-            apiKeySid,
-            apiKeySecret,
+            twilioConfig.accountSid,
+            twilioConfig.apiKeySid,
+            twilioConfig.apiKeySecret,
             {
                 identity: `client-${Date.now()}`, // Unique identity for this client
                 ttl: 3600 // Token valid for 1 hour
@@ -106,13 +97,13 @@ app.post('/api/token', (req, res) => {
         
         // Create a Voice grant and add it to the token
         const voiceGrant = new VoiceGrant({
-            outgoingApplicationSid: twimlAppSid,
+            outgoingApplicationSid: twilioConfig.twimlAppSid,
             incomingAllow: true, // Allow incoming calls
         });
         
         // If no TwiML App is configured, we can still make outbound calls
         // but need to handle the webhook differently
-        if (!twimlAppSid) {
+        if (!twilioConfig.twimlAppSid) {
             console.warn('No TwiML App SID configured. Outbound calls may not work properly.');
         }
         
@@ -157,7 +148,7 @@ app.post('/api/voice', (req, res) => {
         console.log(`Outbound call: dialing ${to} from ${from}`);
         
         const dial = twiml.dial({
-            callerId: from || phoneNumber,
+            callerId: from || twilioConfig.phoneNumber,
             timeout: 30,
             record: 'do-not-record'
         });
@@ -179,7 +170,7 @@ app.post('/api/voice', (req, res) => {
         console.log(`Fallback outbound call: dialing ${to}`);
         
         const dial = twiml.dial({
-            callerId: from || phoneNumber,
+            callerId: from || twilioConfig.phoneNumber,
             timeout: 30
         });
         dial.number(to);
@@ -203,8 +194,8 @@ app.get('/api/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         twilio: {
-            configured: !!(accountSid && apiKeySid && apiKeySecret),
-            accountSid: accountSid ? `${accountSid.substring(0, 8)}...` : 'not configured'
+            configured: !!(twilioConfig.accountSid && twilioConfig.apiKeySid && twilioConfig.apiKeySecret),
+            accountSid: twilioConfig.accountSid ? `${twilioConfig.accountSid.substring(0, 8)}...` : 'not configured'
         }
     });
 });
@@ -286,6 +277,114 @@ app.get('/api/import-calls', async (req, res) => {
     }
 });
 
+// Configure Twilio credentials endpoint
+app.post('/api/configure', async (req, res) => {
+    try {
+        const { accountSid, authToken, apiKeySid, apiKeySecret, twilioPhoneNumber } = req.body;
+        
+        if (!accountSid || !authToken) {
+            return res.status(400).json({
+                error: 'Account SID and Auth Token are required'
+            });
+        }
+        
+        // Update configuration
+        twilioConfig = {
+            accountSid,
+            authToken,
+            apiKeySid: apiKeySid || twilioConfig.apiKeySid,
+            apiKeySecret: apiKeySecret || twilioConfig.apiKeySecret,
+            twimlAppSid: twilioConfig.twimlAppSid, // Keep existing until we create/find one
+            phoneNumber: twilioPhoneNumber || twilioConfig.phoneNumber
+        };
+        
+        // Re-initialize Twilio client with new credentials
+        client = twilio(twilioConfig.accountSid, twilioConfig.authToken);
+        
+        // Try to find or create TwiML app
+        try {
+            const baseUrl =   'https://' + req.get('host');
+            const twimlApp = await findOrCreateTwimlApp(client, baseUrl);
+            
+            if (twimlApp) {
+                twilioConfig.twimlAppSid = twimlApp.sid;
+                console.log('TwiML App configured:', twimlApp.sid);
+            }
+        } catch (twimlError) {
+            console.error('Error setting up TwiML app:', twimlError);
+            // Continue without TwiML app - calls might still work
+        }
+        
+        res.json({
+            success: true,
+            configured: true,
+            hasTwimlApp: !!twilioConfig.twimlAppSid
+        });
+        
+    } catch (error) {
+        console.error('Error configuring Twilio:', error);
+        res.status(500).json({
+            error: 'Failed to configure Twilio credentials'
+        });
+    }
+});
+
+// Helper function to find or create TwiML app
+async function findOrCreateTwimlApp(twilioClient, baseUrl) {
+    try {
+        const appName = 'Call Tracker Pro';
+        const voiceUrl = `${baseUrl}/api/voice`;
+        const voiceMethod = 'POST';
+        
+        // First, try to find existing app
+        const existingApps = await twilioClient.applications.list();
+        const existingApp = existingApps.find(app => 
+            app.friendlyName === appName || 
+            app.voiceUrl === voiceUrl
+        );
+        
+        if (existingApp) {
+            console.log('Found existing TwiML app:', existingApp.sid);
+            
+            // Update the voice URL if it's different
+            if (existingApp.voiceUrl !== voiceUrl) {
+                await twilioClient.applications(existingApp.sid).update({
+                    voiceUrl: voiceUrl,
+                    voiceMethod: voiceMethod
+                });
+                console.log('Updated TwiML app voice URL');
+            }
+            
+            return existingApp;
+        }
+        
+        // Create new TwiML app
+        console.log('Creating new TwiML app...');
+        const newApp = await twilioClient.applications.create({
+            friendlyName: appName,
+            voiceUrl: voiceUrl,
+            voiceMethod: voiceMethod
+        });
+        
+        console.log('Created new TwiML app:', newApp.sid);
+        return newApp;
+        
+    } catch (error) {
+        console.error('Error managing TwiML app:', error);
+        throw error;
+    }
+}
+
+// Get current configuration status
+app.get('/api/configure', (req, res) => {
+    res.json({
+        configured: !!(twilioConfig.accountSid && twilioConfig.authToken),
+        hasApiKeys: !!(twilioConfig.apiKeySid && twilioConfig.apiKeySecret),
+        hasTwimlApp: !!twilioConfig.twimlAppSid,
+        hasPhoneNumber: !!twilioConfig.phoneNumber
+    });
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
     console.error('Server error:', error);
@@ -299,18 +398,10 @@ app.listen(PORT, () => {
     console.log(`\n🚀 Call Tracker Pro Server running on http://localhost:${PORT}`);
     console.log(`📱 Open http://localhost:${PORT} in your browser to access the app`);
     
-    if (missingVars.length > 0) {
-        console.log(`\n⚠️  Warning: Missing environment variables: ${missingVars.join(', ')}`);
-        console.log('📝 Please create a .env file with your Twilio credentials');
+    if (!twilioConfig.accountSid || !twilioConfig.authToken) {
+        console.log(`\n📝 Twilio credentials can be configured via the web interface`);
+        console.log('   Click the settings icon in the app to add your Twilio credentials');
     } else {
-        console.log('\n✅ All Twilio credentials configured');
+        console.log('\n✅ Twilio credentials loaded from environment variables');
     }
-    
-    console.log('\n📋 Environment variables needed:');
-    console.log('   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-    console.log('   TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-    console.log('   TWILIO_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-    console.log('   TWILIO_API_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-    console.log('   TWILIO_TWIML_APP_SID=APxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx (optional)');
-    console.log('   TWILIO_PHONE_NUMBER=+1234567890 (optional)');
 });

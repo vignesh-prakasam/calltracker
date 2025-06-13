@@ -880,7 +880,7 @@ class CallTracker {
         this.closeModal();
     }
 
-    handleSettingsFormSubmit() {
+    async handleSettingsFormSubmit() {
         const creds = {
             accountSid: document.getElementById('accountSid').value,
             apiKeySid: document.getElementById('apiKeySid').value,
@@ -888,16 +888,55 @@ class CallTracker {
             twilioPhoneNumber: document.getElementById('twilioPhoneNumber').value
         };
 
-        this.saveTwilioCredentials(creds);
-        this.closeSettingsModal();
-        
-        // Reinitialize Twilio client with new credentials
-        this.initializeTwilioClient();
-        
-        // Reload phone numbers with new credentials
-        this.loadTwilioPhoneNumbers();
-        
-        alert('Settings saved successfully!');
+        // Validate required fields
+        if (!creds.accountSid || !creds.accountSid.trim()) {
+            alert('Account SID is required');
+            return;
+        }
+
+        try {
+            // Send credentials to backend for configuration
+            const response = await fetch('/api/configure', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    accountSid: creds.accountSid,
+                    authToken: document.getElementById('authToken')?.value || '', // Add auth token field
+                    apiKeySid: creds.apiKeySid,
+                    apiKeySecret: creds.apiKeySecret,
+                    twilioPhoneNumber: creds.twilioPhoneNumber
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Failed to configure Twilio');
+            }
+
+            const result = await response.json();
+            
+            // Save credentials locally for reference
+            this.saveTwilioCredentials(creds);
+            this.closeSettingsModal();
+            
+            // Reinitialize Twilio client with new credentials
+            this.initializeTwilioClient();
+            
+            // Reload phone numbers with new credentials
+            this.loadTwilioPhoneNumbers();
+            
+            let message = 'Settings saved successfully!';
+            if (result.hasTwimlApp) {
+                message += ' TwiML app configured automatically.';
+            }
+            
+            alert(message);
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            alert('Failed to save settings: ' + error.message);
+        }
     }
 
     async testTwilioConnection() {
