@@ -8,7 +8,6 @@ class CallTracker {
         this.callTimer = null;
         this.callStartTime = null;
         this.twilioDevice = null;
-        this.editingCallId = null;
         this.twilioPhoneNumbers = [];
         this.selectedFromNumber = null;
         
@@ -581,57 +580,7 @@ class CallTracker {
         return div.innerHTML;
     }
 
-    // Modal Functions
-    openModal(mode = 'add', callId = null) {
-        const modal = document.getElementById('callModal');
-        const title = document.getElementById('modalTitle');
-        
-        this.editingCallId = callId;
-        
-        if (mode === 'edit' && callId) {
-            title.textContent = 'Edit Call';
-            const call = this.getCallById(callId);
-            if (call) {
-                this.populateForm(call);
-            }
-        } else {
-            title.textContent = 'Add New Call';
-            this.resetForm();
-            // Set current date/time as default
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('dateTime').value = now.toISOString().slice(0, 16);
-        }
-        
-        modal.classList.remove('hidden');
-    }
 
-    closeModal() {
-        document.getElementById('callModal').classList.add('hidden');
-        this.resetForm();
-        this.editingCallId = null;
-    }
-
-    resetForm() {
-        document.getElementById('callForm').reset();
-    }
-
-    populateForm(callData) {
-        document.getElementById('contactName').value = callData.contactName;
-        document.getElementById('phoneNumber').value = callData.phoneNumber;
-        document.getElementById('callType').value = callData.callType;
-        document.getElementById('duration').value = callData.duration || '';
-        
-        const date = new Date(callData.dateTime);
-        date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-        document.getElementById('dateTime').value = date.toISOString().slice(0, 16);
-        
-        document.getElementById('notes').value = callData.notes || '';
-    }
-
-    editCall(id) {
-        this.openModal('edit', id);
-    }
 
     // Settings Modal Functions
     openSettingsModal() {
@@ -769,9 +718,6 @@ class CallTracker {
         });
 
         // Header buttons
-        document.getElementById('addNewCall').addEventListener('click', () => {
-            this.openModal('add');
-        });
 
         document.getElementById('exportCalls').addEventListener('click', () => {
             this.exportToCSV();
@@ -782,9 +728,6 @@ class CallTracker {
         });
 
         // Modal controls
-        document.getElementById('cancelModal').addEventListener('click', () => {
-            this.closeModal();
-        });
 
         document.getElementById('cancelSettings').addEventListener('click', () => {
             this.closeSettingsModal();
@@ -805,10 +748,6 @@ class CallTracker {
         });
 
         // Form submissions
-        document.getElementById('callForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleCallFormSubmit();
-        });
 
         document.getElementById('settingsForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -847,11 +786,6 @@ class CallTracker {
         });
 
         // Close modals when clicking outside
-        document.getElementById('callModal').addEventListener('click', (e) => {
-            if (e.target.id === 'callModal') {
-                this.closeModal();
-            }
-        });
 
         document.getElementById('settingsModal').addEventListener('click', (e) => {
             if (e.target.id === 'settingsModal') {
@@ -860,25 +794,6 @@ class CallTracker {
         });
     }
 
-    handleCallFormSubmit() {
-        const formData = new FormData(document.getElementById('callForm'));
-        const callData = {
-            contactName: formData.get('contactName'),
-            phoneNumber: formData.get('phoneNumber'),
-            callType: formData.get('callType'),
-            duration: parseFloat(formData.get('duration')) || 0,
-            dateTime: formData.get('dateTime'),
-            notes: formData.get('notes')
-        };
-
-        if (this.editingCallId) {
-            this.updateCall(this.editingCallId, callData);
-        } else {
-            this.addCall(callData);
-        }
-
-        this.closeModal();
-    }
 
     async handleSettingsFormSubmit() {
         const creds = {
