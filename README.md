@@ -4,6 +4,12 @@ A professional web-based call tracking application powered by Twilio Voice SDK. 
 
 ![Call Tracker Pro Screenshot](screenshot.png)
 
+## 🚀 [Try Live Demo](https://calltracker.onrender.com/)
+
+**Live demo available at**: [https://calltracker.onrender.com/](https://calltracker.onrender.com/)
+
+> ⚠️ **Free hosting notice**: The demo may take 30-60 seconds to wake up on first visit, as Render spins down instances after inactivity.
+
 ## Features
 
 ### 🎯 Core Functionality
@@ -25,6 +31,12 @@ A professional web-based call tracking application powered by Twilio Voice SDK. 
 - **Responsive Design**: Works seamlessly on desktop and mobile
 - **Real-time Updates**: Live call status and timer updates
 - **Secure Credentials**: Local storage with privacy protection
+
+## 🎯 Live Demo
+
+Try the live demo: **[https://calltracker.onrender.com/](https://calltracker.onrender.com/)**
+
+> **Note**: The demo instance may take 30-60 seconds to wake up on first visit, as Render spins down free tier instances after periods of inactivity.
 
 ## Quick Start
 
@@ -210,6 +222,11 @@ tailwind.config = {
 ## Troubleshooting
 
 ### Common Issues
+
+**Demo Site Taking Long to Load**
+- Free tier hosting: Instance spins down after 15 minutes of inactivity
+- First request may take 30-60 seconds to wake up the server
+- Subsequent requests will be fast once the instance is running
 
 **"Setup Required" Status**
 - Check your Twilio credentials in Settings
