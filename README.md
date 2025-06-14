@@ -2,6 +2,8 @@
 
 A professional web-based call tracking application powered by Twilio Voice SDK. Make calls, track, and analyze your phone calls with a modern, responsive interface.
 
+![Call Tracker Pro Screenshot](screenshot.png)
+
 ## Features
 
 ### 🎯 Core Functionality
@@ -248,7 +250,7 @@ MIT License - see LICENSE file for details.
 
 - 📚 [Twilio Voice Documentation](https://www.twilio.com/docs/voice)
 - 💬 [Twilio Community](https://community.twilio.com/)
-- 🐛 [Report Issues](https://github.com/your-username/call-tracker-pro/issues)
+- 🐛 [Report Issues](https://github.com/vignesh-prakasam/calltracker/issues)
 
 ---
 
