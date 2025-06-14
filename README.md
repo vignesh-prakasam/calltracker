@@ -1,6 +1,6 @@
 # Call Tracker Pro
 
-A professional web-based call tracking application powered by Twilio Voice SDK. Track, manage, and analyze your phone calls with a modern, responsive interface.
+A professional web-based call tracking application powered by Twilio Voice SDK. Make calls, track, and analyze your phone calls with a modern, responsive interface.
 
 ## Features
 
@@ -190,39 +190,6 @@ tailwind.config = {
   }
 }
 ```
-
-**Buy Me a Coffee:**
-Update the href in the Buy Me a Coffee button:
-```html
-<a href="https://www.buymeacoffee.com/yourusername" target="_blank">
-```
-
-## Deployment
-
-### Option 1: Heroku
-1. Create a new Heroku app
-2. Set environment variables in Heroku dashboard
-3. Deploy from Git repository
-
-### Option 2: Netlify Functions
-1. Adapt server endpoints to Netlify Functions
-2. Deploy frontend to Netlify
-3. Configure environment variables
-
-### Option 3: DigitalOcean/AWS/Azure
-1. Deploy to a VPS or cloud instance
-2. Use PM2 for process management
-3. Set up reverse proxy with Nginx
-4. Configure SSL certificate
-
-### Production Checklist
-- [ ] Set all environment variables
-- [ ] Configure HTTPS
-- [ ] Set up proper domain
-- [ ] Implement rate limiting
-- [ ] Add user authentication (optional)
-- [ ] Monitor server logs
-- [ ] Set up backup strategy
 
 ## Browser Compatibility
 
